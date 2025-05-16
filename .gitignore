@@ -1,5 +1,9 @@
 venv
-wav
+*wav
+*text
 .idea
+vosk
+speechbrain
 *.docx
 *.pdf
+*.yaml

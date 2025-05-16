@@ -1,43 +1,33 @@
-from pipeline import perform_diarization, perform_separation, perform_text_recognition, perform_noise_reduction
+from functions import (
+    diarization,
+    text_recognition,
+    noise_reduction,
+)
 import os
-import re
+import yaml
+import files
 
-directory = 'wav'
 token_env_key = 'HF_TOKEN'
 
-paths = []
-regWav = re.compile(r'^.*\.wav$')
-regSep = re.compile(r'^.*est\d+\.wav$')
-regNoise = re.compile(r'^.*_noise\.wav$')
-regNoiseRed = re.compile(r'^.*_noise_red\.wav$')
-regNoiseRedSep = re.compile(r'^.*_noise_red_est\d+\.wav$')
+token = os.getenv(token_env_key)
 
-for entry in os.scandir(directory):
-    if entry.is_file() and regWav.match(entry.path):
-        paths.append(entry.path)
+with open('config.yaml') as f:
+    cfg = yaml.safe_load(f)
 
-for path in paths:
-    perform_diarization(path, os.getenv(token_env_key))
-    perform_separation(path)
+if token is None:
+    token = cfg.get(token_env_key)
 
-for entry in os.scandir(directory):
-    if entry.is_file() and regWav.match(entry.path):
-        perform_text_recognition(entry.path)
+data = files.get_wav_data('records')
 
-# ШУМОПОДАВЛЕНИЕ
+print(data)
 
-noisePaths = []
+for path in data:
+    noise_reduction(path)
+    diarization(path, token=token)
+    text_recognition(path)
 
-for entry in os.scandir(directory):
-    if entry.is_file() and regNoise.match(entry.path):
-        perform_noise_reduction(entry.path)
+data_noise_reduce = files.get_wav_data('NR')
 
-for entry in os.scandir(directory):
-    if entry.is_file() and regNoiseRed.match(entry.path):
-        perform_diarization(entry.path, os.getenv(token_env_key))
-        perform_separation(entry.path)
-
-for entry in os.scandir(directory):
-    if entry.is_file() and regNoiseRedSep.match(entry.path):
-        perform_text_recognition(entry.path)
-
+for path in data_noise_reduce:
+    diarization(path, token=token)
+    text_recognition(path)
